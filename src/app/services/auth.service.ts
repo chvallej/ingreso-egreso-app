@@ -5,24 +5,23 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
 } from '@angular/fire/auth';
-import {
-  Firestore,
-  collection,
-  setDoc,
-  addDoc,
-  getDoc,
-  doc,
-} from '@angular/fire/firestore';
+import { Firestore, setDoc, getDoc, doc } from '@angular/fire/firestore';
 import { map } from 'rxjs/operators';
 import { Usuario } from '../models/usuario.model';
 import { AppState } from '../app.reducer';
 import { Store } from '@ngrx/store';
 import { setUser, unSetUser } from '../auth/auth.actions';
+import { unSetItems } from '../ingreso-egreso/ingreso-egreso.actions';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
+  private _user!: Usuario | null;
+
+  get user() {
+    return this._user;
+  }
   constructor(
     public auth: Auth,
     public firestore: Firestore,
@@ -41,17 +40,17 @@ export class AuthService {
           doc(this.firestore, `${fuser.uid}/usuario`)
         );
         if (docSnap.exists()) {
-          console.log('Document data:', docSnap.data());
-          this.store.dispatch(
-            setUser({ user: Usuario.fromFirebase(docSnap.data()) })
-          );
+          this._user = Usuario.fromFirebase(docSnap.data());
+          this.store.dispatch(setUser({ user: this._user }));
         } else {
           // docSnap.data() will be undefined in this case
           console.log('No such document!');
         }
       } else {
         //No Existe
+        this._user = null;
         this.store.dispatch(unSetUser());
+        this.store.dispatch(unSetItems());
       }
     });
   }
